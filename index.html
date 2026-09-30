@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>굿윌스토어 통합 업무 포털</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Noto Sans KR"', 'sans-serif'], },
+                    colors: {
+                        goodwill: { blue: '#0050A0', green: '#8DC63F', light: '#f8f9fa', dark: '#212529' }
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'hover': '0 10px 15px -3px rgba(0, 80, 160, 0.1), 0 4px 6px -2px rgba(0, 80, 160, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f4f6f9; color: #333; -webkit-font-smoothing: antialiased; }
+        .header-top { background-color: #0050A0; height: 8px; width: 100%; }
+        .header-main { background: white; border-bottom: 1px solid #e5e7eb; }
+        .menu-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #e2e8f0; }
+        .menu-btn:hover { transform: translateY(-4px); border-color: #8DC63F; box-shadow: 0 10px 20px rgba(0, 80, 160, 0.08); }
+        .menu-btn:hover .icon-box { background-color: #0050A0; color: white; transform: scale(1.05); }
+        .icon-box { transition: all 0.3s ease; }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] summary ~ * { animation: fadeInDown 0.3s ease-out; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div class="header-top"></div>
+    <header class="header-main sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg bg-goodwill-blue text-white flex items-center justify-center">
+                    <i class="ph ph-buildings text-2xl"></i>
+                </div>
+                <div><h1 class="text-2xl font-black tracking-tight text-goodwill-blue">굿윌스토어 후원 관련 통합 포털</h1></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <div class="mb-10 text-center sm:text-left">
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">굿윌스토어 기증 담당자 전용 통합 관리페이지</h2>
+            <p class="text-lg text-gray-600">굿윌관리자 페이지 및 구글시트로 작성하는 모든 내용들을 하나의 페이지로 접속할 수 있습니다.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            <a href="http://goodwillstore.kr/view/csteam/login.php" target="_blank" class="menu-btn block bg-white rounded-2xl p-6 shadow-card group">
+                <div class="icon-box w-16 h-16 rounded-2xl bg-blue-50 text-goodwill-blue flex items-center justify-center mb-6"><i class="ph ph-desktop text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-goodwill-blue transition-colors">굿윌관리자 프로그램</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">기증 접수 및 현황 관리를 위한 굿윌스토어(CS팀) 시스템 접속</p>
+            </a>
+
+            <a href="https://script.google.com/a/macros/miral.org/s/AKfycbxtaavaNuU0vYsIIMGWdtEDgVEYtG8aVcLaUnoQdYiGVDPud2VPiAGBoEHeHTpB7kHb/exec" target="_blank" class="menu-btn block bg-white rounded-2xl p-6 shadow-card group">
+                <div class="icon-box w-16 h-16 rounded-2xl bg-green-50 text-goodwill-green flex items-center justify-center mb-6"><i class="ph ph-clipboard-text text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-goodwill-green transition-colors">요건처리 접수</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">기증 관련 요건, 문의사항 및 CS 처리를 위한 구글 폼 접수</p>
+            </a>
+
+            <a href="https://m.site.naver.com/2eeT9" target="_blank" class="menu-btn block bg-white rounded-2xl p-6 shadow-card group">
+                <div class="icon-box w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mb-6"><i class="ph ph-map-pin-line text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors">지점 및 기증함 조회</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">전국 매장 위치 및 지역별 무인 기증함 설치 위치 지도 확인</p>
+            </a>
+
+            <button onclick="window.open('dashboard.html', '_blank')" class="menu-btn text-left block bg-white rounded-2xl p-6 shadow-card group w-full relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-2 h-full bg-goodwill-blue opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="icon-box w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6"><i class="ph ph-chart-bar text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-goodwill-blue transition-colors">기증량 분석 대시보드</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">각 지점별 기증량 추이 및 실시간 분석 전용 대시보드 열기</p>
+            </button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+            <div class="bg-gray-50/80 border-b border-gray-100 px-6 py-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-goodwill-green/10 text-goodwill-green p-2 rounded-lg"><i class="ph ph-megaphone text-xl font-bold"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900">굿윌본부 & CS 전달사항</h3>
+                </div>
+                
+                <div class="flex gap-2">
+                    <input type="file" id="excelUpload" accept=".xlsx" class="hidden" onchange="handleFileUpload(event)">
+                    <button id="uploadDataBtn" onclick="document.getElementById('excelUpload').click()" class="hidden flex items-center gap-2 text-sm bg-goodwill-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 transition-colors">
+                        <i class="ph ph-upload-simple font-bold"></i> 기증데이터 업로드
+                    </button>
+
+                    <button id="writeNoticeBtn" onclick="openWriteModal()" class="hidden flex items-center gap-2 text-sm bg-gray-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-800 transition-colors">
+                        <i class="ph ph-pencil-simple font-bold"></i> 전달사항 작성
+                    </button>
+                </div>
+            </div>
+            
+            <div id="noticeList" class="divide-y divide-gray-100"></div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-center md:text-left">
+                <p class="font-bold text-gray-800 mb-1">밀알복지재단 굿윌스토어</p>
+                <p class="text-sm text-gray-500">후원관련 문의 유의성 대리(02-6411-3698) / 최시온 간사(02-6411-3733) ㅣ 위 페이지는 굿윌스토어 기증담당자를 위한 페이지입니다.</p>
+            </div>
+            
+            <div class="flex flex-col items-center md:items-end gap-2">
+                <div class="text-gray-400 text-sm font-medium">&copy; 2026 Goodwill Store. All rights reserved.</div>
+                <button onclick="toggleAdminModal()" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="ph ph-lock-key"></i>
+                    <span id="adminStatusText">굿윌본부 관리자 접속</span>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- [모달 1] 관리자 인증 -->
+    <div id="adminModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 transform scale-95 transition-transform duration-300" id="adminModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-900">관리자 인증</h3>
+                <button onclick="toggleAdminModal()" class="text-gray-400 hover:text-gray-600 bg-gray-100 p-2 rounded-full transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <div class="mb-5">
+                <label for="adminPw" class="block text-sm font-bold text-gray-700 mb-2">비밀번호 입력</label>
+                <input type="password" id="adminPw" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-goodwill-blue focus:border-goodwill-blue outline-none transition-all" placeholder="" onkeypress="if(event.key === 'Enter') checkAdmin()">
+            </div>
+            <p id="adminErrorMsg" class="text-red-500 text-sm hidden mb-4 font-medium"><i class="ph ph-warning-circle"></i> 비밀번호가 일치하지 않습니다.</p>
+            <button onclick="checkAdmin()" class="w-full bg-goodwill-blue hover:bg-blue-800 text-white font-bold py-3 rounded-xl transition-colors shadow-md">인증하기</button>
+        </div>
+    </div>
+
+    <!-- [모달 2] 전달사항 작성/수정 (이미지 첨부 추가) -->
+    <div id="writeModal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]" id="writeModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 id="modalTitle" class="text-2xl font-bold text-gray-900 flex items-center gap-2"><i class="ph ph-pencil-simple-line text-goodwill-blue"></i> 새 전달사항 등록</h3>
+                <button onclick="closeWriteModal()" class="text-gray-400 hover:text-gray-600 bg-gray-100 p-2 rounded-full"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            
+            <div class="overflow-y-auto pr-2" style="flex: 1;">
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">제목</label>
+                    <input type="text" id="noticeTitle" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-goodwill-blue outline-none transition-all" placeholder="전달사항 제목을 입력하세요">
+                </div>
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">사진 첨부 (선택)</label>
+                    <!-- [추가] 이미지 파일 입력 -->
+                    <input type="file" id="noticeImage" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-goodwill-blue hover:file:bg-blue-100">
+                </div>
+                <div class="mb-8">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">상세 내용</label>
+                    <textarea id="noticeContent" rows="6" class="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-goodwill-blue outline-none resize-none transition-all" placeholder="지점 담당자들에게 전달할 내용을 상세히 적어주세요."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
+                <button onclick="closeWriteModal()" class="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold transition-colors">취소</button>
+                <button id="modalSubmitBtn" onclick="submitNotice()" class="px-6 py-3 bg-goodwill-green hover:bg-[#7ab035] text-white rounded-xl font-bold transition-colors shadow-md">등록 완료</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        let isAdmin = false;
+        const ADMIN_PW = "9191";
+        let editingNoticeId = null; // 수정 중인 글 ID 저장
+        
+        let notices = JSON.parse(localStorage.getItem('goodwill_portal_notices')) || [
+            {
+                id: 1,
+                date: "2026-09-22 09:00",
+                title: "[안내] 9월 3주차 기증데이터 대시보드 업데이트 완료",
+                content: "각 지점 담당자님, 수고 많으십니다.\n\n본부에서 9월 3주차 기증 실적 데이터를 대시보드에 성공적으로 업데이트 하였습니다.\n'기증량 분석 대시보드' 메뉴에 접속하셔서 당월 달성률 및 전년 동기 대비 실적을 확인해 주시기 바랍니다.\n\n감사합니다.",
+                image: null
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => { renderNotices(); });
+
+        function renderNotices() {
+            const listEl = document.getElementById('noticeList');
+            listEl.innerHTML = '';
+            
+            if (notices.length === 0) {
+                listEl.innerHTML = '<div class="px-6 py-10 text-center text-gray-500 font-medium">등록된 전달사항이 없습니다.</div>';
+                return;
+            }
+
+            const sortedNotices = [...notices].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedNotices.forEach(notice => {
+                // 💡 [수정] 수정, 삭제 버튼 함께 배치
+                const editBtnHtml = isAdmin ? `<button onclick="openEditModal(${notice.id})" class="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md font-bold flex items-center gap-1 transition-colors"><i class="ph ph-pencil-simple"></i> 수정</button>` : '';
+                const deleteBtnHtml = isAdmin ? `<button onclick="deleteNotice(${notice.id})" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-md font-bold flex items-center gap-1 transition-colors"><i class="ph ph-trash"></i> 삭제</button>` : '';
+                const actionBtns = isAdmin ? `<div class="flex gap-2 mt-5">${editBtnHtml}${deleteBtnHtml}</div>` : '';
+
+                const formattedContent = notice.content.replace(/\n/g, '<br>');
+                // 💡 [추가] 이미지 태그 렌더링
+                const imageHtml = notice.image ? `<img src="${notice.image}" class="mt-4 mb-4 max-w-full h-auto rounded-lg shadow-sm border border-gray-100">` : '';
+
+                const html = `
+                    <details class="group p-6 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                        <summary class="flex justify-between items-center font-medium outline-none text-gray-900">
+                            <div class="flex items-center gap-4">
+                                <span class="text-xs font-bold text-goodwill-blue bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">공지</span>
+                                <span class="text-lg group-hover:text-goodwill-blue transition-colors">${notice.title}</span>
+                            </div>
+                            <div class="flex items-center gap-4 text-gray-400">
+                                <span class="text-sm font-medium hidden sm:block">${notice.date.substring(0, 10)}</span>
+                                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-goodwill-blue transition-colors">
+                                    <i class="ph ph-caret-down transition-transform duration-300 group-open:-rotate-180"></i>
+                                </div>
+                            </div>
+                        </summary>
+                        <div class="mt-5 pt-5 border-t border-gray-100 text-gray-600 text-base leading-relaxed cursor-text pl-14">
+                            ${imageHtml}
+                            ${formattedContent}
+                            ${actionBtns}
+                        </div>
+                    </details>
+                `;
+                listEl.innerHTML += html;
+            });
+        }
+
+        // 이미지 Base64 변환 함수
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        async function submitNotice() {
+            const title = document.getElementById('noticeTitle').value.trim();
+            const content = document.getElementById('noticeContent').value.trim();
+            const imageFile = document.getElementById('noticeImage').files[0];
+            
+            if (!title || !content) { alert("제목과 내용을 모두 입력해주세요."); return; }
+            
+            let imageBase64 = null;
+            if (imageFile) {
+                try {
+                    imageBase64 = await toBase64(imageFile);
+                } catch(e) {
+                    alert("이미지 처리 중 오류가 발생했습니다."); return;
+                }
+            } else if (editingNoticeId) {
+                // 수정 시 이미지를 새로 올리지 않았다면 기존 이미지 유지
+                const existing = notices.find(n => n.id === editingNoticeId);
+                if (existing) imageBase64 = existing.image;
+            }
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            
+            if (editingNoticeId) {
+                const index = notices.findIndex(n => n.id === editingNoticeId);
+                if (index > -1) {
+                    notices[index].title = title;
+                    notices[index].content = content;
+                    notices[index].image = imageBase64;
+                    // 작성일은 변경하지 않고 유지함
+                }
+            } else {
+                notices.unshift({ id: Date.now(), date: dateStr, title: title, content: content, image: imageBase64 });
+            }
+            
+            try {
+                localStorage.setItem('goodwill_portal_notices', JSON.stringify(notices)); 
+            } catch(e) {
+                // 브라우저 로컬 스토리지 5MB 초과 시 예외 처리
+                alert("사진의 용량이 너무 커서 저장할 수 없습니다. 용량이 더 작은 사진을 사용해주세요.");
+                if(!editingNoticeId) notices.shift(); // 추가 실패 시 롤백
+                return;
+            }
+            
+            closeWriteModal(); 
+            renderNotices();
+        }
+
+        function deleteNotice(id) {
+            if(confirm("정말로 이 공지사항을 삭제하시겠습니까?")) {
+                notices = notices.filter(n => n.id !== id);
+                localStorage.setItem('goodwill_portal_notices', JSON.stringify(notices));
+                renderNotices();
+            }
+        }
+
+        function toggleModal(modalId, contentId, focusId = null) {
+            const modal = document.getElementById(modalId);
+            const content = document.getElementById(contentId);
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+                if(focusId) document.getElementById(focusId).focus();
+            } else {
+                modal.classList.add('opacity-0'); content.classList.add('scale-95');
+                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+            }
+        }
+
+        function toggleAdminModal() {
+            if (isAdmin) {
+                if(confirm("관리자 모드에서 로그아웃 하시겠습니까?")) {
+                    isAdmin = false;
+                    document.getElementById('writeNoticeBtn').classList.add('hidden');
+                    document.getElementById('uploadDataBtn').classList.add('hidden');
+                    document.getElementById('adminStatusText').innerText = '굿윌본부 관리자 접속';
+                    renderNotices();
+                }
+                return;
+            }
+            toggleModal('adminModal', 'adminModalContent', 'adminPw');
+            document.getElementById('adminPw').value = ''; document.getElementById('adminErrorMsg').classList.add('hidden');
+        }
+
+        function checkAdmin() {
+            const pw = document.getElementById('adminPw').value;
+            if (pw === ADMIN_PW) {
+                isAdmin = true;
+                document.getElementById('writeNoticeBtn').classList.remove('hidden');
+                document.getElementById('uploadDataBtn').classList.remove('hidden');
+                document.getElementById('adminStatusText').innerText = '관리자 접속 중';
+                toggleModal('adminModal', 'adminModalContent');
+                renderNotices();
+                alert("관리자 인증 완료! 공지사항 작성 및 데이터 엑셀 업로드가 가능해졌습니다.");
+            } else {
+                document.getElementById('adminErrorMsg').classList.remove('hidden');
+            }
+        }
+
+        function openWriteModal() { 
+            editingNoticeId = null;
+            document.getElementById('modalTitle').innerHTML = '<i class="ph ph-pencil-simple-line text-goodwill-blue"></i> 새 전달사항 등록';
+            document.getElementById('modalSubmitBtn').innerText = '등록 완료';
+            document.getElementById('noticeTitle').value = ''; 
+            document.getElementById('noticeContent').value = '';
+            document.getElementById('noticeImage').value = '';
+            toggleModal('writeModal', 'writeModalContent', 'noticeTitle'); 
+        }
+
+        function openEditModal(id) {
+            const notice = notices.find(n => n.id === id);
+            if(!notice) return;
+            editingNoticeId = id;
+            document.getElementById('modalTitle').innerHTML = '<i class="ph ph-pencil-simple-line text-goodwill-blue"></i> 전달사항 수정';
+            document.getElementById('modalSubmitBtn').innerText = '수정 완료';
+            document.getElementById('noticeTitle').value = notice.title; 
+            document.getElementById('noticeContent').value = notice.content;
+            document.getElementById('noticeImage').value = ''; // File input은 보안상 값을 채울 수 없음
+            toggleModal('writeModal', 'writeModalContent', 'noticeTitle');
+        }
+
+        function closeWriteModal() {
+            toggleModal('writeModal', 'writeModalContent');
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.includes('기증데이터') || !file.name.endsWith('.xlsx')) {
+                alert("파일명에 '기증데이터'가 포함된 엑셀(.xlsx) 파일만 업로드 가능합니다.");
+                event.target.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+            alert("서버로 파일을 전송 중입니다. 잠시만 기다려주세요...");
+
+            try {
+                const response = await fetch('/api/upload-data', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') alert("성공적으로 업로드되었습니다! 이제 대시보드를 열면 새로운 데이터가 반영됩니다.");
+                else alert("업로드 실패: " + result.message);
+            } catch (error) {
+                alert("서버 연결 오류! VS Code 터미널에서 파이썬 서버가 실행 중인지 확인해주세요.");
+            }
+            event.target.value = '';
+        }
+    </script>
+</body>
+</html>
