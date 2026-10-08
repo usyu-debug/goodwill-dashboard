@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>굿윌스토어 통합 업무 포털</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Noto Sans KR"', 'sans-serif'], },
+                    colors: {
+                        goodwill: { blue: '#0050A0', green: '#8DC63F', light: '#f8f9fa', dark: '#212529' }
+                    },
+                    boxShadow: {
+                        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                        'hover': '0 10px 15px -3px rgba(0, 80, 160, 0.1), 0 4px 6px -2px rgba(0, 80, 160, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f4f6f9; color: #333; -webkit-font-smoothing: antialiased; }
+        .header-top { background-color: #0050A0; height: 8px; width: 100%; }
+        .header-main { background: white; border-bottom: 1px solid #e5e7eb; }
+        .menu-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid #e2e8f0; }
+        .menu-btn:hover { transform: translateY(-4px); border-color: #8DC63F; box-shadow: 0 10px 20px rgba(0, 80, 160, 0.08); }
+        .menu-btn:hover .icon-box { background-color: #0050A0; color: white; transform: scale(1.05); }
+        .icon-box { transition: all 0.3s ease; }
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] summary ~ * { animation: fadeInDown 0.3s ease-out; }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <div class="header-top"></div>
+    <header class="header-main sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg bg-goodwill-blue text-white flex items-center justify-center">
+                    <i class="ph ph-buildings text-2xl"></i>
+                </div>
+                <div><h1 class="text-2xl font-black tracking-tight text-goodwill-blue">굿윌스토어 후원 관련 통합 포털</h1></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        <div class="mb-10 text-center sm:text-left">
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">굿윌스토어 기증 담당자 전용 통합 관리페이지</h2>
+            <p class="text-lg text-gray-600">굿윌관리자 페이지 및 구글시트로 작성하는 모든 내용들을 하나의 페이지로 접속할 수 있습니다.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            <a href="http://goodwillstore.kr/view/csteam/login.php" target="_blank" class="menu-btn block bg-white rounded-2xl p-6 shadow-card group">
+                <div class="icon-box w-16 h-16 rounded-2xl bg-blue-50 text-goodwill-blue flex items-center justify-center mb-6"><i class="ph ph-desktop text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-goodwill-blue transition-colors">굿윌관리자 프로그램</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">기증 접수 및 현황 관리를 위한 굿윌스토어(CS팀) 시스템 접속</p>
+            </a>
+
+            <a href="https://script.google.com/a/macros/miral.org/s/AKfycbxtaavaNuU0vYsIIMGWdtEDgVEYtG8aVcLaUnoQdYiGVDPud2VPiAGBoEHeHTpB7kHb/exec" target="_blank" class="menu-btn block bg-white rounded-2xl p-6 shadow-card group">
+                <div class="icon-box w-16 h-16 rounded-2xl bg-green-50 text-goodwill-green flex items-center justify-center mb-6"><i class="ph ph-clipboard-text text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-goodwill-green transition-colors">요건처리 접수</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">기증 관련 요건, 문의사항 및 CS 처리를 위한 구글 폼 접수</p>
+            </a>
+
+            <a href="https://script.google.com/a/macros/miral.org/s/AKfycbyvCzzCNf7Hn3Q8A-x0TexAHmusgcRR-vVWv5PTDHfjKJXl0IJPglsT-UA7XlNgEH3TSw/exec" target="_blank" class="menu-btn block bg-white rounded-2xl p-6 shadow-card group">
+                <div class="icon-box w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center mb-6"><i class="ph ph-map-pin-line text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-orange-600 transition-colors">지점 및 기증함 조회</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">전국 매장 위치 및 지역별 무인 기증함 설치 위치 지도 확인</p>
+            </a>
+
+            <!-- 💡 대시보드 버튼에 target="_blank" 추가 완료 -->
+            <a href="dashboard.html" target="_blank" class="menu-btn text-left block bg-white rounded-2xl p-6 shadow-card group w-full relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-2 h-full bg-goodwill-blue opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="icon-box w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6"><i class="ph ph-chart-bar text-3xl"></i></div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3 group-hover:text-goodwill-blue transition-colors">기증량 분석 대시보드</h3>
+                <p class="text-sm text-gray-500 leading-relaxed font-medium">각 지점별 기증량 추이 및 실시간 분석 전용 대시보드 열기</p>
+            </a>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+            <div class="bg-gray-50/80 border-b border-gray-100 px-6 py-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-goodwill-green/10 text-goodwill-green p-2 rounded-lg"><i class="ph ph-megaphone text-xl font-bold"></i></div>
+                    <h3 class="text-xl font-bold text-gray-900">굿윌본부 & CS 전달사항</h3>
+                </div>
+            </div>
+            
+            <div id="noticeList" class="divide-y divide-gray-100">
+                
+                <!-- ========================================== -->
+                <!-- 👇 새 공지사항을 추가할 때 아래 1세트를 복사해서 붙여넣으세요 👇 -->
+                <!-- ========================================== -->
+
+                <details class="group p-6 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                    <summary class="flex justify-between items-center font-medium outline-none text-gray-900">
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs font-bold text-goodwill-blue bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">공지</span>
+                            <!-- 👇 1. 여기에 제목을 적어주세요 -->
+                            <span class="text-lg font-bold group-hover:text-goodwill-blue transition-colors">굿윌관리자프로그램 주민번호 오류 시 등록 절차</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-gray-400">
+                            <!-- 👇 2. 여기에 날짜를 적어주세요 -->
+                            <span class="text-sm font-medium hidden sm:block">2026-10-08</span>
+                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-goodwill-blue transition-colors">
+                                <i class="ph ph-caret-down transition-transform duration-300 group-open:-rotate-180"></i>
+                            </div>
+                        </div>
+                    </summary>
+                    <div class="mt-5 pt-5 border-t border-gray-100 text-gray-600 text-base leading-relaxed cursor-text pl-14">
+                        <!-- 👇 3. 여기에 본문 내용을 적어주세요 -->
+                        굿윌관리자프로그램 주민번호 오류(등록 불가) 시, 절차 안내드립니다. <br><br>
+                        1. 일차적으로 기증페이지에 등록이 안되는 주민번호 대신 사업자, 213-82-04651(밀알복지재단) 으로 접수 등록<br><br>
+                        2. ** 관리자(본부)에게 해당 주민번호로 변경 요청**<br><br>
+                        업무에 참고 부탁드립니다!<br>
+                        감사합니다. 
+                    </div>
+                </details>
+
+                <!-- ========================================== -->
+                <!-- 👆 공지사항 추가 양식 끝 👆 -->
+                <!-- ========================================== -->
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-center md:text-left">
+                <p class="font-bold text-gray-800 mb-1">밀알복지재단 굿윌스토어</p>
+                <p class="text-sm text-gray-500"> 문의 김영덕 팀장(02-6411-3694) / 유의성 대리(02-6411-3698) / 최시온 간사(02-6411-3733) ㅣ 위 페이지는 굿윌스토어 기증담당자를 위한 페이지입니다.</p>
+            </div>
+            <div class="flex flex-col items-center md:items-end gap-2">
+                <div class="text-gray-400 text-sm font-medium">&copy; 2026 Goodwill Store. All rights reserved.</div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
