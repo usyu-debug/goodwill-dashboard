@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko" class="transition-colors duration-300">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>굿윌스토어 기증량 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', }</script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        /* 💡 틀고정을 위해 table-container와 table 속성 수정 */
+        .table-container { overflow-x: auto; border-radius: 0.5rem; margin-bottom: 2rem; position: relative; }
+        table { width: 100%; font-size: 0.875rem; text-align: left; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 0.75rem 1.5rem; white-space: nowrap; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0050A0; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .draw-overlay { z-index: 10; cursor: crosshair; }
+    </style>
+</head>
+<body class="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <div class="h-2 w-full bg-[#0050A0] dark:bg-[#6BA4E7]"></div>
+    
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-[#0050A0] dark:text-[#6BA4E7]">굿윌스토어 기증량 대시보드</h1>
+            <div class="flex gap-2 items-center">
+                <button onclick="window.location.href='index.html'" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2 rounded font-bold hover:bg-gray-300 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-house text-lg"></i> 홈
+                </button>
+                <button onclick="toggleDarkMode()" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2 rounded font-bold hover:bg-gray-300 transition shadow-sm">
+                    <i id="themeIcon" class="ph ph-moon text-lg"></i>
+                </button>
+                <button onclick="toggleDrawMode()" id="drawModeBtn" class="bg-green-500 text-white px-2 py-1.5 text-xs rounded font-bold hover:bg-green-600 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-pencil-simple text-sm"></i> 그래프 체크
+                </button>
+                <button onclick="clearDrawings()" class="bg-gray-500 text-white px-2 py-1.5 text-xs rounded font-bold hover:bg-gray-600 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-eraser text-sm"></i> 지우기
+                </button>
+                <button onclick="fetchPythonData()" class="bg-[#0050A0] dark:bg-[#6BA4E7] text-white px-4 py-2 text-sm rounded font-bold hover:bg-blue-800 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-chart-bar text-lg"></i> 기증량 대시보드 보기
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 relative min-h-[500px]">
+        
+        <div id="initialInstruction" class="absolute inset-0 flex flex-col items-center justify-center text-center mt-20 z-10">
+            <div class="w-24 h-24 bg-blue-50 dark:bg-gray-800 text-[#0050A0] dark:text-[#6BA4E7] rounded-full flex items-center justify-center mb-6 shadow-sm border border-blue-100 dark:border-gray-700">
+                <i class="ph ph-chart-line-up text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4 tracking-tight">실시간 기증량 분석 대시보드</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-lg mb-6">우측 상단의 <strong class="text-[#0050A0] dark:text-[#6BA4E7] bg-blue-50 dark:bg-gray-800 px-3 py-1 rounded shadow-sm border border-blue-100 dark:border-gray-700">기증량 대시보드 보기</strong> 버튼을 클릭해주세요.</p>
+            <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-6 py-3 rounded-xl flex items-center gap-2">
+                <i class="ph ph-warning-circle text-red-500 text-xl font-bold"></i>
+                <span class="text-red-600 dark:text-red-400 font-bold text-sm">수십만 건의 데이터를 연산하므로 최초 1회 약 2~3분 정도 소요될 수 있습니다.</span>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden text-center py-10 relative z-20"><div class="loader"></div><p class="font-bold text-[#0050A0] dark:text-[#6BA4E7] mt-4">데이터를 연산 중입니다. 잠시만 기다려주세요...</p></div>
+        <div id="errorMessage" class="hidden bg-red-50 dark:bg-red-900 border border-red-200 text-red-600 p-4 rounded-lg mb-8 font-bold text-center relative z-20"></div>
+
+        <div id="dashboardContent" class="hidden relative z-20">
+            
+            <!-- 0. 굿윌스토어 전체 기증 추이 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">굿윌스토어 전체 기증 추이</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4">
+                        <h3 class="text-lg font-bold text-[#0050A0] dark:text-[#6BA4E7]">📉 전체 및 기증방법별 수량 연속 추이 (2023~2026년)</h3>
+                        <select id="trendOverallSelector" onchange="onTrendOverallChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]">
+                            <option value="전체합계" selected>전체 기증수량</option>
+                            <option value="방문수거">방문수거</option>
+                            <option value="직접기증">직접기증</option>
+                            <option value="택배수거">택배수거</option>
+                            <option value="기업기증">기업기증</option>
+                            <option value="부서제출">부서제출</option>
+                        </select>
+                    </div>
+                    <div class="relative w-full h-[400px]">
+                        <canvas id="chartTrendOverall"></canvas>
+                        <canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. 현재 기증 현황 (월/지점/기준 다중 선택) -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4">
+                    <h2 class="text-2xl font-bold border-l-4 border-[#8DC63F] pl-3">1. 현재 기증 현황 (<span id="dynamicDateText"></span>)</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <!-- 💡 새로운 기준 선택 드롭다운 (수량/건수/금액) -->
+                        <select id="metricSelector" onchange="onDashboard1Change()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]">
+                            <option value="수량" selected>수량 (점)</option>
+                            <option value="건수">건수 (건)</option>
+                            <option value="금액">총금액 (원)</option>
+                        </select>
+                        <select id="monthSelector" onchange="onDashboard1Change()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]"></select>
+                        <select id="branchSelector" onchange="onDashboard1Change()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]"></select>
+                    </div>
+                </div>
+                <div id="dashboard1Cards" class="grid grid-cols-1 md:grid-cols-6 gap-4"></div>
+            </div>
+
+            <!-- 2. 기증방법별 기증량 (틀고정 표) -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">2. 기증방법별 기증량 (2026년)</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📈 지점별 기증방법 수량 비율 (%)</h3>
+                    <div class="relative w-full h-[400px] mb-8"><canvas id="myChart"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div>
+                    
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📋 기증 건수 (건)</h3>
+                    <!-- 💡 틀고정이 반영될 table-container -->
+                    <div class="table-container border dark:border-gray-700"><table class="w-full"><thead id="headCount"></thead><tbody id="bodyCount"></tbody></table></div>
+                    
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📦 물품 수량 (점)</h3>
+                    <div class="table-container border dark:border-gray-700"><table class="w-full"><thead id="headQuantity"></thead><tbody id="bodyQuantity"></tbody></table></div>
+                    
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">💰 총 금액 (원)</h3>
+                    <div class="table-container border dark:border-gray-700 mb-0"><table class="w-full"><thead id="headAmount"></thead><tbody id="bodyAmount"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- 3. 지점별 기증 추이 조회 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">3. 지점별 기증 추이 조회</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex flex-col md:flex-row justify-end items-end mb-4 gap-4">
+                        <div class="flex gap-2">
+                            <select id="searchBranch" onchange="onSearchChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none"></select>
+                            <select id="searchMethod" onchange="onSearchChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none">
+                                <option value="전체">전체 기증방법</option>
+                                <option value="직접기증" selected>직접기증</option>
+                                <option value="방문수거">방문수거</option>
+                                <option value="택배수거">택배수거</option>
+                                <option value="기업기증">기업기증</option>
+                                <option value="부서제출">부서제출</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-[350px]"><canvas id="chartTrendSearch"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 4. 기증센터 기증량 추이 분석 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">4. 기증센터 기증량 추이 분석 (2023~2026년)</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📉 월별 직접기증 총 수량 연속 추이</h3>
+                    <div class="relative w-full h-[400px]"><canvas id="chartTrend"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 5. 지점별 직접기증 기증수량 추이 분석 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">5. 지점별 직접기증 기증수량 추이 분석</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-[#0050A0] dark:text-[#6BA4E7]">🚀 전년 동기 대비 기증센터 성장률 상위 5개 매장 (2025~26년)</h3>
+                    <div id="top5ChartsContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+                </div>
+            </div>
+
+            <!-- 6. 2026년 품목별 기증통계 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">6. 2026년 품목별 기증통계</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7] text-center">📊 전체 품목별 기증 수량 비율</h3>
+                            <div class="relative h-[300px]"><canvas id="chartPieOverall"></canvas></div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📋 전체 품목별 상세 실적</h3>
+                            <div class="table-container border dark:border-gray-700 max-h-[300px] overflow-y-auto">
+                                <table class="w-full relative border-collapse" style="border-spacing: 0;">
+                                    <thead class="bg-[#f9fafb] dark:bg-gray-700 sticky top-0 z-20"><tr><th class="border-b dark:border-gray-600 shadow-sm sticky left-0 bg-[#f9fafb] dark:bg-gray-700 z-30">물품명</th><th class="text-right border-b dark:border-gray-600 shadow-sm">건수</th><th class="text-right border-b dark:border-gray-600 shadow-sm">수량(점)</th><th class="text-right border-b dark:border-gray-600 shadow-sm">금액(원)</th></tr></thead>
+                                    <tbody id="itemTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold mb-6 text-[#0050A0] dark:text-[#6BA4E7] text-center">📊 기증방법별 품목 기증 수량 비율</h3>
+                    <div class="flex flex-col lg:flex-row gap-6 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div id="methodPiesContainer" class="flex-1 grid grid-cols-2 lg:grid-cols-5 gap-6"></div>
+                        <div class="w-full lg:w-48 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-600 pt-4 lg:pt-0 lg:pl-6 flex flex-col justify-center">
+                            <h4 class="font-bold text-[#0050A0] dark:text-[#6BA4E7] mb-3 flex items-center gap-1">품목 범례</h4>
+                            <ul id="sharedLegend" class="text-sm space-y-2 max-h-[150px] lg:max-h-none overflow-y-auto pr-2"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. 지점별 기업기증 개발현황 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">7. 지점별 기업기증 개발현황 (2026년)</h2>
+                <div id="dashboard3Content" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div id="noCorpData" class="hidden text-center text-gray-500 py-10 font-bold">기업기증 데이터가 없습니다.</div>
+                    <div id="corpLayout" class="grid grid-cols-1 lg:grid-cols-3 gap-8 hidden">
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📋 기업기증 요약표</h3>
+                            <div class="table-container border dark:border-gray-700"><table class="w-full"><thead class="bg-[#f9fafb] dark:bg-gray-700"><tr><th class="text-center border-b dark:border-gray-600 sticky left-0 bg-[#f9fafb] z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">지점</th><th class="text-right border-b dark:border-gray-600">건수</th><th class="text-right border-b dark:border-gray-600">수량(점)</th></tr></thead><tbody id="corpTableBody"></tbody></table></div>
+                        </div>
+                        <div class="lg:col-span-2 flex flex-col">
+                            <div><h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📈 기업기증 수량 및 금액 그래프 (전체)</h3><div class="relative h-[250px]"><canvas id="chartCorpMixed"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div></div>
+                            <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700"><div class="flex justify-between items-end mb-3"><h3 class="text-lg font-bold text-[#0050A0] dark:text-[#6BA4E7]">🔍 품목별 수량 및 금액 그래프</h3><select id="corpItemSelector" onchange="onCorpItemChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-1 text-sm font-bold shadow-sm focus:outline-none"></select></div><div class="relative h-[250px]"><canvas id="chartCorpItemMixed"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        Chart.register(ChartDataLabels);
+
+        const API_URL = '/api/dashboard-data';
+        const ITEM_COLORS = ['#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00', '#F781BF', '#A65628', '#66C2A5', '#999999', '#FFFF33'];
+        
+        let chartInstance = null, corpMixedChart = null, corpItemMixedChart = null, trendChart = null, searchTrendChart = null, overallPieChart = null, overallTrendChart = null;
+        let top5Charts = [], methodPieCharts = [];
+        let globalCorpItemData = {}, globalAllTrends = {}, globalD0Data = {};
+        
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').className = isDark ? 'ph ph-sun text-lg' : 'ph ph-moon text-lg';
+            Chart.defaults.color = isDark ? '#D1D5DB' : '#6B7280';
+            Chart.defaults.borderColor = isDark ? '#374151' : '#E5E7EB';
+            [chartInstance, corpMixedChart, corpItemMixedChart, trendChart, searchTrendChart, overallPieChart, overallTrendChart, ...top5Charts, ...methodPieCharts].forEach(c => { if(c) c.update(); });
+            onDashboard1Change(); 
+        }
+
+        let drawMode = false;
+        function toggleDrawMode() {
+            drawMode = !drawMode;
+            const btn = document.getElementById('drawModeBtn');
+            if (drawMode) {
+                btn.classList.replace('bg-green-500', 'bg-red-500'); btn.classList.replace('hover:bg-green-600', 'hover:bg-red-600');
+                btn.innerHTML = '<i class="ph ph-pencil-slash text-sm"></i> 그래프 체크 해제';
+            } else {
+                btn.classList.replace('bg-red-500', 'bg-green-500'); btn.classList.replace('hover:bg-red-600', 'hover:bg-green-600');
+                btn.innerHTML = '<i class="ph ph-pencil-simple text-sm"></i> 그래프 체크';
+            }
+            document.querySelectorAll('.draw-overlay').forEach(canvas => { canvas.style.pointerEvents = drawMode ? 'auto' : 'none'; });
+        }
+        function clearDrawings() { document.querySelectorAll('.draw-overlay').forEach(canvas => { canvas.shapes = []; canvas.getContext('
