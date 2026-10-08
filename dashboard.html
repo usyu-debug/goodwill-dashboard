@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko" class="transition-colors duration-300">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>굿윌스토어 기증량 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', }</script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .table-container { overflow-x: auto; border-radius: 0.5rem; margin-bottom: 2rem; position: relative; }
+        table { width: 100%; font-size: 0.875rem; text-align: left; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 0.75rem 1.5rem; white-space: nowrap; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0050A0; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .draw-overlay { z-index: 10; cursor: crosshair; }
+    </style>
+</head>
+<body class="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <div class="h-2 w-full bg-[#0050A0] dark:bg-[#6BA4E7]"></div>
+    
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-[#0050A0] dark:text-[#6BA4E7]">굿윌스토어 기증량 대시보드</h1>
+            <div class="flex gap-2 items-center">
+                <button onclick="toggleDarkMode()" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2 rounded font-bold hover:bg-gray-300 transition shadow-sm">
+                    <i id="themeIcon" class="ph ph-moon text-lg"></i>
+                </button>
+                <button onclick="toggleDrawMode()" id="drawModeBtn" class="bg-green-500 text-white px-2 py-1.5 text-xs rounded font-bold hover:bg-green-600 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-pencil-simple text-sm"></i> 그래프 체크
+                </button>
+                <button onclick="clearDrawings()" class="bg-gray-500 text-white px-2 py-1.5 text-xs rounded font-bold hover:bg-gray-600 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-eraser text-sm"></i> 지우기
+                </button>
+                <button onclick="fetchPythonData()" class="bg-[#0050A0] dark:bg-[#6BA4E7] text-white px-4 py-2 text-sm rounded font-bold hover:bg-blue-800 transition shadow-sm flex items-center gap-1">
+                    <i class="ph ph-chart-bar text-lg"></i> 기증량 대시보드 보기
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 relative min-h-[500px]">
+        
+        <div id="initialInstruction" class="absolute inset-0 flex flex-col items-center justify-center text-center mt-20 z-10">
+            <div class="w-24 h-24 bg-blue-50 dark:bg-gray-800 text-[#0050A0] dark:text-[#6BA4E7] rounded-full flex items-center justify-center mb-6 shadow-sm border border-blue-100 dark:border-gray-700">
+                <i class="ph ph-chart-line-up text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-4 tracking-tight">실시간 기증량 분석 대시보드</h2>
+            <p class="text-gray-600 dark:text-gray-400 text-lg mb-6">우측 상단의 <strong class="text-[#0050A0] dark:text-[#6BA4E7] bg-blue-50 dark:bg-gray-800 px-3 py-1 rounded shadow-sm border border-blue-100 dark:border-gray-700">기증량 대시보드 보기</strong> 버튼을 클릭해주세요.</p>
+            <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 px-6 py-3 rounded-xl flex items-center gap-2">
+                <i class="ph ph-warning-circle text-red-500 text-xl font-bold"></i>
+                <span class="text-red-600 dark:text-red-400 font-bold text-sm">수십만 건의 데이터를 연산하므로 최초 1회 약 2~3분 정도 소요될 수 있습니다.</span>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden text-center py-10 relative z-20"><div class="loader"></div><p class="font-bold text-[#0050A0] dark:text-[#6BA4E7] mt-4">데이터를 연산 중입니다. 잠시만 기다려주세요...</p></div>
+        <div id="errorMessage" class="hidden bg-red-50 dark:bg-red-900 border border-red-200 text-red-600 p-4 rounded-lg mb-8 font-bold text-center relative z-20"></div>
+
+        <div id="dashboardContent" class="hidden relative z-20">
+            
+            <!-- 0. 굿윌스토어 전체 기증 추이 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">굿윌스토어 전체 기증 추이</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4">
+                        <h3 class="text-lg font-bold text-[#0050A0] dark:text-[#6BA4E7]">📉 전체 및 기증방법별 수량 연속 추이 (2023~2026년)</h3>
+                        <select id="trendOverallSelector" onchange="onTrendOverallChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]">
+                            <option value="전체합계" selected>전체 기증수량</option>
+                            <option value="방문수거">방문수거</option>
+                            <option value="직접기증">직접기증</option>
+                            <option value="택배수거">택배수거</option>
+                            <option value="기업기증">기업기증</option>
+                            <option value="부서제출">부서제출</option>
+                        </select>
+                    </div>
+                    <div class="relative w-full h-[400px]">
+                        <canvas id="chartTrendOverall"></canvas>
+                        <canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. 현재 기증 현황 (월/지점 다중 선택) -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4">
+                    <h2 class="text-2xl font-bold border-l-4 border-[#8DC63F] pl-3">1. 현재 기증 현황 (<span id="dynamicDateText"></span>)</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <!-- 🔥 새로운 기준 선택 드롭다운 (수량/건수/금액) -->
+                        <select id="metricSelector" onchange="onDashboard1Change()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]">
+                            <option value="수량" selected>수량 (점)</option>
+                            <option value="건수">건수 (건)</option>
+                            <option value="금액">총금액 (원)</option>
+                        </select>
+                        <select id="monthSelector" onchange="onDashboard1Change()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]"></select>
+                        <select id="branchSelector" onchange="onDashboard1Change()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none focus:ring-[#0050A0]"></select>
+                    </div>
+                </div>
+                <div id="dashboard1Cards" class="grid grid-cols-1 md:grid-cols-6 gap-4"></div>
+            </div>
+
+            <!-- 2. 기증방법별 기증량 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">2. 기증방법별 기증량 (2026년)</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📈 지점별 기증방법 수량 비율 (%)</h3>
+                    <div class="relative w-full h-[400px] mb-8"><canvas id="myChart"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div>
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📋 기증 건수 (건)</h3>
+                    <div class="table-container border dark:border-gray-700"><table class="w-full"><thead id="headCount"></thead><tbody id="bodyCount"></tbody></table></div>
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📦 물품 수량 (점)</h3>
+                    <div class="table-container border dark:border-gray-700"><table class="w-full"><thead id="headQuantity"></thead><tbody id="bodyQuantity"></tbody></table></div>
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">💰 총 금액 (원)</h3>
+                    <div class="table-container border dark:border-gray-700 mb-0"><table class="w-full"><thead id="headAmount"></thead><tbody id="bodyAmount"></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- 3. 지점별 기증 추이 조회 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">3. 지점별 기증 추이 조회</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex flex-col md:flex-row justify-end items-end mb-4 gap-4">
+                        <div class="flex gap-2">
+                            <select id="searchBranch" onchange="onSearchChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none"></select>
+                            <select id="searchMethod" onchange="onSearchChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-2 text-sm font-bold shadow-sm focus:outline-none">
+                                <option value="전체">전체 기증방법</option>
+                                <option value="직접기증" selected>직접기증</option>
+                                <option value="방문수거">방문수거</option>
+                                <option value="택배수거">택배수거</option>
+                                <option value="기업기증">기업기증</option>
+                                <option value="부서제출">부서제출</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-[350px]"><canvas id="chartTrendSearch"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 4. 기증센터 기증량 추이 분석 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">4. 기증센터 기증량 추이 분석 (2023~2026년)</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📉 월별 직접기증 총 수량 연속 추이</h3>
+                    <div class="relative w-full h-[400px]"><canvas id="chartTrend"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div>
+                </div>
+            </div>
+
+            <!-- 5. 지점별 직접기증 기증수량 추이 분석 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">5. 지점별 직접기증 기증수량 추이 분석</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-[#0050A0] dark:text-[#6BA4E7]">🚀 전년 동기 대비 기증센터 성장률 상위 5개 매장 (2025~26년)</h3>
+                    <div id="top5ChartsContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+                </div>
+            </div>
+
+            <!-- 6. 2026년 품목별 기증통계 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">6. 2026년 품목별 기증통계</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+                        <div>
+                            <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7] text-center">📊 전체 품목별 기증 수량 비율</h3>
+                            <div class="relative h-[300px]"><canvas id="chartPieOverall"></canvas></div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📋 전체 품목별 상세 실적</h3>
+                            <div class="table-container border dark:border-gray-700 max-h-[300px] overflow-y-auto">
+                                <table class="w-full relative">
+                                    <thead class="bg-[#f9fafb] dark:bg-gray-700 sticky top-0 z-20"><tr><th class="border-b dark:border-gray-600 shadow-sm">물품명</th><th class="text-right border-b dark:border-gray-600 shadow-sm">건수</th><th class="text-right border-b dark:border-gray-600 shadow-sm">수량(점)</th><th class="text-right border-b dark:border-gray-600 shadow-sm">금액(원)</th></tr></thead>
+                                    <tbody id="itemTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold mb-6 text-[#0050A0] dark:text-[#6BA4E7] text-center">📊 기증방법별 품목 기증 수량 비율</h3>
+                    <div class="flex flex-col lg:flex-row gap-6 bg-gray-50 dark:bg-gray-800/50 p-6 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <div id="methodPiesContainer" class="flex-1 grid grid-cols-2 lg:grid-cols-5 gap-6"></div>
+                        <div class="w-full lg:w-48 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-600 pt-4 lg:pt-0 lg:pl-6 flex flex-col justify-center">
+                            <h4 class="font-bold text-[#0050A0] dark:text-[#6BA4E7] mb-3 flex items-center gap-1">품목 범례</h4>
+                            <ul id="sharedLegend" class="text-sm space-y-2 max-h-[150px] lg:max-h-none overflow-y-auto pr-2"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. 지점별 기업기증 개발현황 -->
+            <div class="animate-on-scroll opacity-0 translate-y-10 transition-all duration-700 ease-out mb-10">
+                <h2 class="text-2xl font-bold mb-4 border-l-4 border-[#8DC63F] pl-3">7. 지점별 기업기증 개발현황 (2026년)</h2>
+                <div id="dashboard3Content" class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div id="noCorpData" class="hidden text-center text-gray-500 py-10 font-bold">기업기증 데이터가 없습니다.</div>
+                    <div id="corpLayout" class="grid grid-cols-1 lg:grid-cols-3 gap-8 hidden">
+                        <div class="lg:col-span-1">
+                            <h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📋 기업기증 요약표</h3>
+                            <div class="table-container border dark:border-gray-700"><table class="w-full"><thead class="bg-[#f9fafb] dark:bg-gray-700"><tr><th class="text-center border-b dark:border-gray-600">지점</th><th class="text-right border-b dark:border-gray-600">건수</th><th class="text-right border-b dark:border-gray-600">수량(점)</th></tr></thead><tbody id="corpTableBody"></tbody></table></div>
+                        </div>
+                        <div class="lg:col-span-2 flex flex-col">
+                            <div><h3 class="text-lg font-bold mb-3 text-[#0050A0] dark:text-[#6BA4E7]">📈 기업기증 수량 및 금액 그래프 (전체)</h3><div class="relative h-[250px]"><canvas id="chartCorpMixed"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div></div>
+                            <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700"><div class="flex justify-between items-end mb-3"><h3 class="text-lg font-bold text-[#0050A0] dark:text-[#6BA4E7]">🔍 품목별 수량 및 금액 그래프</h3><select id="corpItemSelector" onchange="onCorpItemChange()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded p-1 text-sm font-bold shadow-sm focus:outline-none"></select></div><div class="relative h-[250px]"><canvas id="chartCorpItemMixed"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        Chart.register(ChartDataLabels);
+
+        const API_URL = '/api/dashboard-data';
+        const ITEM_COLORS = ['#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00', '#F781BF', '#A65628', '#66C2A5', '#999999', '#FFFF33'];
+        
+        let chartInstance = null, corpMixedChart = null, corpItemMixedChart = null, trendChart = null, searchTrendChart = null, overallPieChart = null, overallTrendChart = null;
+        let top5Charts = [], methodPieCharts = [];
+        let globalCorpItemData = {}, globalAllTrends = {}, globalD0Data = {};
+        
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').className = isDark ? 'ph ph-sun text-lg' : 'ph ph-moon text-lg';
+            Chart.defaults.color = isDark ? '#D1D5DB' : '#6B7280';
+            Chart.defaults.borderColor = isDark ? '#374151' : '#E5E7EB';
+            [chartInstance, corpMixedChart, corpItemMixedChart, trendChart, searchTrendChart, overallPieChart, overallTrendChart, ...top5Charts, ...methodPieCharts].forEach(c => { if(c) c.update(); });
+            onDashboard1Change(); 
+        }
+
+        let drawMode = false;
+        function toggleDrawMode() {
+            drawMode = !drawMode;
+            const btn = document.getElementById('drawModeBtn');
+            if (drawMode) {
+                btn.classList.replace('bg-green-500', 'bg-red-500'); btn.classList.replace('hover:bg-green-600', 'hover:bg-red-600');
+                btn.innerHTML = '<i class="ph ph-pencil-slash text-sm"></i> 그래프 체크 해제';
+            } else {
+                btn.classList.replace('bg-red-500', 'bg-green-500'); btn.classList.replace('hover:bg-red-600', 'hover:bg-green-600');
+                btn.innerHTML = '<i class="ph ph-pencil-simple text-sm"></i> 그래프 체크';
+            }
+            document.querySelectorAll('.draw-overlay').forEach(canvas => { canvas.style.pointerEvents = drawMode ? 'auto' : 'none'; });
+        }
+        function clearDrawings() { document.querySelectorAll('.draw-overlay').forEach(canvas => { canvas.shapes = []; canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }); }
+        function initDrawCanvases() {
+            document.querySelectorAll('.draw-overlay').forEach(canvas => {
+                const rect = canvas.parentElement.getBoundingClientRect();
+                canvas.width = rect.width; canvas.height = rect.height;
+                if (canvas.initialized) return;
+                canvas.initialized = true; canvas.shapes = [];
+                let isDrawing = false, startX, startY;
+                canvas.addEventListener('mousedown', (e) => { if (!drawMode) return; isDrawing = true; const r = canvas.getBoundingClientRect(); startX = e.clientX - r.left; startY = e.clientY - r.top; });
+                canvas.addEventListener('mousemove', (e) => {
+                    if (!isDrawing) return; const r = canvas.getBoundingClientRect(); const mouseX = e.clientX - r.left, mouseY = e.clientY - r.top;
+                    const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    canvas.shapes.forEach(shape => drawEllipse(ctx, shape.startX, shape.startY, shape.endX, shape.endY)); drawEllipse(ctx, startX, startY, mouseX, mouseY);
+                });
+                canvas.addEventListener('mouseup', (e) => { if (!isDrawing) return; isDrawing = false; const r = canvas.getBoundingClientRect(); canvas.shapes.push({ startX, startY, endX: e.clientX - r.left, endY: e.clientY - r.top }); });
+                canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+            });
+        }
+        function drawEllipse(ctx, x1, y1, x2, y2) { ctx.beginPath(); ctx.ellipse(x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2, Math.abs(x2 - x1) / 2, Math.abs(y2 - y1) / 2, 0, 0, 2 * Math.PI); ctx.strokeStyle = 'red'; ctx.lineWidth = 3; ctx.stroke(); }
+        
+        function initScrollAnimations() {
+            const observer = new IntersectionObserver(entries => { entries.forEach(entry => { if(entry.isIntersecting) { entry.target.classList.remove('opacity-0', 'translate-y-10'); entry.target.classList.add('opacity-100', 'translate-y-0'); }}); }, { threshold: 0.1 });
+            document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+        }
+
+        function formatTrendLabels(years, months) {
+            const finalLabels = months.map(m => [m + '월', '']); 
+            const yearGroups = {}; 
+            years.forEach((yr, i) => { if(!yearGroups[yr]) yearGroups[yr] = []; yearGroups[yr].push(i); });
+            Object.keys(yearGroups).forEach(yr => {
+                const indices = yearGroups[yr]; const midIndex = indices[Math.floor(indices.length / 2)]; finalLabels[midIndex][1] = yr;
+            });
+            return finalLabels;
+        }
+
+        async function fetchPythonData() {
+            document.getElementById('initialInstruction').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden'); 
+            document.getElementById('dashboardContent').classList.add('hidden'); 
+            document.getElementById('errorMessage').classList.add('hidden');
+            
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`서버 통신 오류!`);
+                const data = await response.json();
+                if (data.status === 'error') throw new Error(data.message); 
+
+                let dateText = data.dashboard_1.date_str || "최신 업데이트";
+                if (!dateText.includes("기준")) dateText += " 기준";
+                document.getElementById('dynamicDateText').innerText = dateText;
+
+                let mMatch = dateText.match(/(\d+)월/);
+                window.currentDashboardMonth = mMatch ? `2026-${mMatch[1]}` : '2026-9';
+
+                // 전체 누적 데이터 저장 (모든 연산의 기준)
+                globalAllTrends = data.dashboard_5.all_trends;
+
+                const branchSelector = document.getElementById('branchSelector'); 
+                branchSelector.innerHTML = '';
+                data.dashboard_1.branch_list.forEach(branch => { branchSelector.innerHTML += `<option value="${branch}">${branch}</option>`; });
+                populateMonthSelector();
+                
+                // 1번 대시보드 계산 실행
+                onDashboard1Change();
+
+                renderDashboard0(data.dashboard_0);
+
+                const d2 = data.dashboard_2;
+                renderTable(d2.count, d2.ordered_branches_count, 'headCount', 'bodyCount'); 
+                renderTable(d2.quantity, d2.ordered_branches_quantity, 'headQuantity', 'bodyQuantity'); 
+                renderTable(d2.amount, d2.ordered_branches_amount, 'headAmount', 'bodyAmount'); 
+                renderChart(d2.chart, d2.chart_branch_order);
+                
+                renderDashboard3(data.dashboard_3);
+                renderDashboard4(data.dashboard_4);
+                renderDashboard5(data.dashboard_5, data.dashboard_1.branch_list);
+                renderDashboard6(data.dashboard_6);
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+                
+                initScrollAnimations();
+                setTimeout(initDrawCanvases, 500);
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden'); document.getElementById('errorMessage').innerText = "오류 발생: " + error.message; document.getElementById('errorMessage').classList.remove('hidden');
+            }
+        }
+
+        // ==========================================
+        // 1. 현재 기증 현황 (월별/기준별 연산기)
+        // ==========================================
+        function populateMonthSelector() {
+            const selector = document.getElementById('monthSelector');
+            selector.innerHTML = '';
+            
+            let yearMonths = [];
+            globalAllTrends.forEach(r => {
+                if (r.연도 && r.월) {
+                    const yStr = String(r.연도).replace(/[^0-9]/g, '');
+                    const mStr = String(r.월).replace(/[^0-9]/g, '');
+                    if (yStr === '2026') {
+                        const ym = `${yStr}-${mStr}`;
+                        if (!yearMonths.includes(ym)) yearMonths.push(ym);
+                    }
+                }
+            });
+            
+            if (!yearMonths.includes(window.currentDashboardMonth)) {
+                yearMonths.push(window.currentDashboardMonth);
+            }
+
+            yearMonths.sort((a, b) => {
+                const [yA, mA] = a.split('-').map(Number);
+                const [yB, mB] = b.split('-').map(Number);
+                if (yA !== yB) return yB - yA;
+                return mB - mA;
+            });
+
+            selector.innerHTML += `<option value="2026-all">2026년 전체</option>`;
+            yearMonths.forEach(ym => {
+                const [y, m] = ym.split('-');
+                selector.innerHTML += `<option value="${ym}">${y}년 ${m}월</option>`;
+            });
+
+            selector.value = window.currentDashboardMonth;
+        }
+
+        // 💡 수량/건수/금액을 동적으로 골라서 계산하는 통합 함수
+        function getCalculatedQty(year, month, branch, method, metric) {
+            let qty = 0;
+            globalAllTrends.forEach(r => {
+                const rYear = Number(String(r.연도).replace(/[^0-9]/g, ''));
+                const rMonth = Number(String(r.월).replace(/[^0-9]/g, ''));
+                
+                if (rYear === year && rMonth === month) {
+                    let matchBranch = (branch === '전체') ? true : (r.모점포구분 === branch);
+                    let matchMethod = (method === '전체합계') ? (r.기증방법 !== '전체합계') : (r.기증방법 === method);
+                    
+                    if (matchBranch && matchMethod) {
+                        if (metric === '수량') qty += (r.물품수량 || 0);
+                        else if (metric === '건수') qty += (r['기증 건수'] || 0);
+                        else if (metric === '금액') qty += (r.총금액 || 0);
+                    }
+                }
+            });
+            return qty;
+        }
+
+        function onDashboard1Change() {
+            const ym = document.getElementById('monthSelector').value;
+            const branchName = document.getElementById('branchSelector').value;
+            const metric = document.getElementById('metricSelector').value; // 수량, 건수, 금액
+            
+            if (!ym) return;
+            
+            // 기준에 따라 단위(점, 건, 원) 변경
+            const unit = metric === '수량' ? '점' : (metric === '건수' ? '건' : '원');
+            
+            const methods = ['전체합계', '방문수거', '직접기증', '택배수거', '기업기증', '부서제출'];
+            const container = document.getElementById('dashboard1Cards'); 
+            container.innerHTML = ''; 
+            
+            if (ym === '2026-all') {
+                let available2026Months = new Set();
+                globalAllTrends.forEach(r => {
+                    const rYear = Number(String(r.연도).replace(/[^0-9]/g, ''));
+                    const rMonth = Number(String(r.월).replace(/[^0-9]/g, ''));
+                    if (rYear === 2026) available2026Months.add(rMonth);
+                });
+                let monthList = Array.from(available2026Months);
+
+                methods.forEach(method => {
+                    let currentQty = 0;
+                    let prevYearQty = 0;
+
+                    monthList.forEach(m => {
+                        currentQty += getCalculatedQty(2026, m, branchName, method, metric);
+                        prevYearQty += getCalculatedQty(2025, m, branchName, method, metric);
+                    });
+
+                    let yoy = prevYearQty === 0 ? 0 : Math.round(((currentQty - prevYearQty) / prevYearQty) * 100);
+                    if (currentQty === 0 && prevYearQty === 0) yoy = 0;
+
+                    const yoyColor = yoy > 0 ? 'text-green-600 dark:text-green-400' : (yoy < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-500');
+                    const yoyArrow = yoy > 0 ? '▲ ' : (yoy < 0 ? '▼ ' : '');
+                    const bgClass = method === '전체합계' ? 'bg-[#f0f6fc] dark:bg-gray-700 border-[#0050A0]' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700';
+                    
+                    container.innerHTML += `<div class="${bgClass} p-4 rounded-xl shadow-sm border transition-colors duration-300">
+                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold mb-1">${method}</div>
+                        <div class="text-2xl font-black text-[#0050A0] dark:text-[#6BA4E7] mb-3">${currentQty.toLocaleString()} <span class="text-sm font-normal text-gray-500">${unit}</span></div>
+                        <div class="flex justify-between text-xs mt-1">
+                            <span class="text-gray-500">전년동기</span><span class="font-bold ${yoyColor}">${yoy !== 0 ? yoyArrow + Math.abs(yoy) + '%' : '-'}</span>
+                        </div>
+                    </div>`;
+                });
+            } else {
+                const [year, month] = ym.split('-').map(Number);
+                
+                methods.forEach(method => {
+                    let currentQty = getCalculatedQty(year, month, branchName, method, metric);
+                    let prevMonthYear = month === 1 ? year - 1 : year;
+                    let prevMonth = month === 1 ? 12 : month - 1;
+                    
+                    let prevMonthQty = getCalculatedQty(prevMonthYear, prevMonth, branchName, method, metric);
+                    let prevYearQty = getCalculatedQty(year - 1, month, branchName, method, metric);
+                    
+                    let mom = prevMonthQty === 0 ? 0 : Math.round(((currentQty - prevMonthQty) / prevMonthQty) * 100);
+                    let yoy = prevYearQty === 0 ? 0 : Math.round(((currentQty - prevYearQty) / prevYearQty) * 100);
+                    
+                    if (currentQty === 0 && prevMonthQty === 0) mom = 0;
+                    if (currentQty === 0 && prevYearQty === 0) yoy = 0;
+
+                    const momColor = mom > 0 ? 'text-green-600 dark:text-green-400' : (mom < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-500');
+                    const momArrow = mom > 0 ? '▲ ' : (mom < 0 ? '▼ ' : '');
+                    const yoyColor = yoy > 0 ? 'text-green-600 dark:text-green-400' : (yoy < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-500');
+                    const yoyArrow = yoy > 0 ? '▲ ' : (yoy < 0 ? '▼ ' : '');
+                    const bgClass = method === '전체합계' ? 'bg-[#f0f6fc] dark:bg-gray-700 border-[#0050A0]' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700';
+                    
+                    container.innerHTML += `<div class="${bgClass} p-4 rounded-xl shadow-sm border transition-colors duration-300">
+                        <div class="text-gray-500 dark:text-gray-400 text-sm font-bold mb-1">${method}</div>
+                        <div class="text-2xl font-black text-[#0050A0] dark:text-[#6BA4E7] mb-3">${currentQty.toLocaleString()} <span class="text-sm font-normal text-gray-500">${unit}</span></div>
+                        <div class="flex justify-between text-xs mt-1">
+                            <span class="text-gray-500">전월대비</span><span class="font-bold ${momColor}">${mom !== 0 ? momArrow + Math.abs(mom) + '%' : '-'}</span>
+                        </div>
+                        <div class="flex justify-between text-xs mt-1">
+                            <span class="text-gray-500">전년동기</span><span class="font-bold ${yoyColor}">${yoy !== 0 ? yoyArrow + Math.abs(yoy) + '%' : '-'}</span>
+                        </div>
+                    </div>`;
+                });
+            }
+        }
+
+        // ==========================================
+        // 2. 기증방법별 기증량 (틀고정 반영 표 렌더링)
+        // ==========================================
+        function renderTable(data, orderedBranches, headId, bodyId) {
+            const tableHead = document.getElementById(headId); 
+            const tableBody = document.getElementById(bodyId); 
+            tableHead.innerHTML = ''; tableBody.innerHTML = ''; 
+            if (!data || Object.keys(data).length === 0) return;
+            
+            let validBranches = orderedBranches.filter(b => b !== "알수없음");
+            
+            // 💡 첫 번째 th(기증방법) 틀고정 적용 (sticky, z-10, shadow)
+            let theadHTML = `<tr><th class="sticky left-0 z-10 bg-[#f9fafb] dark:bg-gray-700 border-b dark:border-gray-600 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">기증방법</th>`;
+            validBranches.forEach(branch => { theadHTML += `<th class="text-right border-b dark:border-gray-600 bg-[#f9fafb] dark:bg-gray-700">${branch}</th>`; });
+            theadHTML += `<th class="text-right border-b dark:border-gray-600 bg-[#f0f6fc] dark:bg-gray-600 text-[#0050A0] dark:text-[#6BA4E7]">총합</th></tr>`;
+            tableHead.innerHTML = theadHTML;
+            
+            let colTotals = new Array(validBranches.length).fill(0);
+            let grandTotal = 0;
+            
+            Object.keys(data).forEach(method => {
+                let rowTotal = 0;
+                // 💡 첫 번째 td(기증방법) 틀고정 적용
+                let trHTML = `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700"><td class="sticky left-0 z-10 bg-white dark:bg-gray-800 font-bold text-gray-900 dark:text-gray-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">${method}</td>`;
+                
+                validBranches.forEach((branch, idx) => { 
+                    let val = data[method][branch] || 0;
+                    rowTotal += val;
+                    colTotals[idx] += val;
+                    trHTML += `<td class="text-right bg-transparent">${val.toLocaleString()}</td>`; 
+                });
+                
+                grandTotal += rowTotal;
+                trHTML += `<td class="text-right font-bold text-[#0050A0] dark:text-[#6BA4E7] bg-[#f0f6fc] dark:bg-gray-800/50">${rowTotal.toLocaleString()}</td></tr>`;
+                tableBody.innerHTML += trHTML;
+            });
+            
+            // 💡 푸터 첫 번째 td(총합) 틀고정 적용
+            let tfootHTML = `<tr class="bg-[#f0f6fc] dark:bg-gray-600 border-t-2 border-[#0050A0] dark:border-[#6BA4E7]"><td class="sticky left-0 z-10 bg-[#f0f6fc] dark:bg-gray-600 font-bold text-[#0050A0] dark:text-[#6BA4E7] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">총합</td>`;
+            colTotals.forEach(val => {
+                tfootHTML += `<td class="text-right font-bold text-[#0050A0] dark:text-[#6BA4E7] bg-transparent">${val.toLocaleString()}</td>`;
+            });
+            tfootHTML += `<td class="text-right font-black text-[#0050A0] dark:text-[#6BA4E7] bg-transparent">${grandTotal.toLocaleString()}</td></tr>`;
+            
+            tableBody.innerHTML += tfootHTML;
+        }
+
+        // ==========================================
+        // 나머지 차트 렌더링 함수들 (변경 없음)
+        // ==========================================
+        function renderDashboard0(d0Data, selectedMethod = '전체합계') {
+            globalD0Data = d0Data;
+            if (overallTrendChart) overallTrendChart.destroy();
+            const finalLabels = formatTrendLabels(d0Data.years, d0Data.months);
+            let dataPoints = selectedMethod === '전체합계' ? d0Data.total : d0Data.methods[selectedMethod];
+            overallTrendChart = new Chart(document.getElementById('chartTrendOverall').getContext('2d'), {
+                type: 'line', data: { labels: finalLabels, datasets: [{ label: selectedMethod + ' 기증 수량', data: dataPoints, borderColor: '#6BA4E7', backgroundColor: '#6BA4E7', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#0050A0' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { callbacks: { title: (ctx) => d0Data.years[ctx[0].dataIndex] + " " + d0Data.months[ctx[0].dataIndex] + "월", label: (ctx) => ctx.parsed.y.toLocaleString() + ' 점' } } }, scales: { y: { ticks: { callback: (v) => v.toLocaleString() } }, x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: {size: 11, weight: 'bold'} } } }
+            });
+        }
+        function onTrendOverallChange() { renderDashboard0(globalD0Data, document.getElementById('trendOverallSelector').value); }
+        function onCorpItemChange() { renderCorpItemChart(document.getElementById('corpItemSelector').value); }
+
+        function renderChart(chartData, orderedBranches) {
+            const ctx = document.getElementById('myChart').getContext('2d'); if (chartInstance) chartInstance.destroy();
+            const validBranches = orderedBranches.filter(b => b !== "알수없음"); const methods = [...new Set(chartData.map(item => item.기증방법))];
+            const methodColors = { '방문수거': '#0050A0', '직접기증': '#6BA4E7', '택배수거': '#EF4444', '부서제출': '#FCA5A5', '기업기증': '#10B981' };
+            const datasets = methods.map(method => ({ label: method, backgroundColor: methodColors[method] || '#9CA3AF', data: validBranches.map(branch => { const r = chartData.find(item => item.모점포구분 === branch && item.기증방법 === method); return r ? r.물품수량 : 0; }) }));
+            chartInstance = new Chart(ctx, { type: 'bar', data: { labels: validBranches, datasets: datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } }, plugins: { legend: { position: 'right' }, datalabels: { color: 'white', font: { weight: 'bold', size: 10 }, formatter: (v, ctx) => { let sum = 0; ctx.chart.data.datasets.map(ds => ds.data[ctx.dataIndex]).forEach(d => sum += d); let pct = (v * 100 / sum); return pct < 6 ? '' : pct.toFixed(1) + "%"; } }, tooltip: { callbacks: { label: function(context) { let label = context.dataset.label ? context.dataset.label + ': ' : ''; let sum = 0; context.chart.data.datasets.map(ds => ds.data[context.dataIndex]).forEach(d => sum += d); let percentage = (context.parsed.y * 100 / sum).toFixed(1) + "%"; return label + context.parsed.y.toLocaleString('ko-KR') + ' 점 (' + percentage + ')'; } } } } } });
+        }
+
+        function renderDashboard3(d3Data) {
+            if (corpMixedChart) corpMixedChart.destroy(); if (corpItemMixedChart) corpItemMixedChart.destroy();
+            if (!d3Data || !d3Data.overall || d3Data.overall.branches.length === 0) { document.getElementById('noCorpData').classList.remove('hidden'); document.getElementById('corpLayout').classList.add('hidden'); return; }
+            document.getElementById('noCorpData').classList.add('hidden'); document.getElementById('corpLayout').classList.remove('hidden');
+            const overall = d3Data.overall; const tbody = document.getElementById('corpTableBody'); tbody.innerHTML = '';
+            for(let i=0; i<overall.branches.length; i++) tbody.innerHTML += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700"><td class="font-bold text-center">${overall.branches[i]}</td><td class="text-right">${overall.count[i].toLocaleString()}</td><td class="text-right text-[#0050A0] dark:text-[#6BA4E7] font-bold">${overall.quantity[i].toLocaleString()}</td></tr>`;
+            corpMixedChart = new Chart(document.getElementById('chartCorpMixed').getContext('2d'), { data: { labels: overall.branches, datasets: [ { type: 'bar', label: '물품 수량 (점)', data: overall.quantity, backgroundColor: '#8DC63F', yAxisID: 'y', order: 2 }, { type: 'line', label: '총 금액 (원)', data: overall.amount, borderColor: '#0050A0', backgroundColor: '#0050A0', borderWidth: 3, pointRadius: 4, yAxisID: 'y1', order: 1 } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, datalabels: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0 } }, y: { type: 'linear', display: true, position: 'left' }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } } });
+            
+            globalCorpItemData = d3Data.items; const itemSelector = document.getElementById('corpItemSelector'); itemSelector.innerHTML = '';
+            const orderList = ['의류', '잡화', '생활', '문화', '건강/미용', '식품', '가전/가구'];
+            let items = Object.keys(globalCorpItemData);
+            items.sort((a, b) => { let idxA = orderList.indexOf(a); let idxB = orderList.indexOf(b); if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999; return idxA - idxB; });
+            if(items.length > 0) { items.forEach(item => { itemSelector.innerHTML += `<option value="${item}">${item}</option>`; }); renderCorpItemChart(items[0]); }
+        }
+
+        function renderCorpItemChart(item) {
+            const data = globalCorpItemData[item]; if(!data) return;
+            if (corpItemMixedChart) corpItemMixedChart.destroy();
+            corpItemMixedChart = new Chart(document.getElementById('chartCorpItemMixed').getContext('2d'), { data: { labels: data.branches, datasets: [ { type: 'bar', label: '물품 수량 (점)', data: data.quantity, backgroundColor: '#F59E0B', yAxisID: 'y', order: 2 }, { type: 'line', label: '총 금액 (원)', data: data.amount, borderColor: '#0050A0', backgroundColor: '#0050A0', borderWidth: 3, pointRadius: 4, yAxisID: 'y1', order: 1 } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, datalabels: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0 } }, y: { type: 'linear', display: true, position: 'left' }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } } });
+        }
+
+        function renderDashboard4(d4Data) {
+            if (trendChart) trendChart.destroy();
+            const finalLabels = formatTrendLabels(d4Data.years, d4Data.months);
+            trendChart = new Chart(document.getElementById('chartTrend').getContext('2d'), { type: 'line', data: { labels: finalLabels, datasets: [{ label: '직접기증 수량 (점)', data: d4Data.quantity, borderColor: '#0050A0', backgroundColor: '#0050A0', pointBackgroundColor: '#8DC63F', borderWidth: 3, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { callbacks: { title: (ctx) => d4Data.years[ctx[0].dataIndex] + " " + d4Data.months[ctx[0].dataIndex] + "월", label: (ctx) => ctx.parsed.y.toLocaleString() + ' 점' } } }, scales: { y: { ticks: { callback: (v) => v.toLocaleString() } }, x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: (ctx) => ({ size: 11, weight: 'bold' }) } } } } });
+        }
+
+        function renderDashboard5(d5Data, branchList) {
+            top5Charts.forEach(c => c.destroy()); top5Charts = [];
+            const container = document.getElementById('top5ChartsContainer'); container.innerHTML = '';
+            d5Data.top5.forEach((store, idx) => { container.innerHTML += `<div><h4 class="font-bold text-center text-gray-700 dark:text-gray-300 mb-2">🥇 ${store.branch} (성장률: <span class="text-green-500">+${store.growth}%</span>)</h4><div class="relative h-[250px]"><canvas id="top5Chart_${idx}"></canvas><canvas class="draw-overlay absolute top-0 left-0 w-full h-full pointer-events-none"></canvas></div></div>`; });
+            setTimeout(() => {
+                d5Data.top5.forEach((store, idx) => {
+                    const ctx = document.getElementById(`top5Chart_${idx}`).getContext('2d');
+                    const chart = new Chart(ctx, { type: 'line', data: { labels: formatTrendLabels(store.years, store.months), datasets: [{ label: '물품 수량', data: store.quantity, borderColor: '#8DC63F', backgroundColor: '#8DC63F', pointBackgroundColor: '#8DC63F', borderWidth: 3, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { callbacks: { title: (ctx) => store.years[ctx[0].dataIndex] + " " + store.months[ctx[0].dataIndex] + "월", label: (ctx) => ctx.parsed.y.toLocaleString() + ' 점' } } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: {size: 10, weight: 'bold'} } }, y: { ticks: { callback: (v) => v.toLocaleString() } } } } });
+                    top5Charts.push(chart);
+                });
+                initDrawCanvases();
+            }, 100);
+            const searchBranch = document.getElementById('searchBranch'); searchBranch.innerHTML = '';
+            branchList.filter(b => b !== '전체').forEach(b => searchBranch.innerHTML += `<option value="${b}">${b}</option>`);
+            onSearchChange(); 
+        }
+
+        function onSearchChange() {
+            const branch = document.getElementById('searchBranch').value; const method = document.getElementById('searchMethod').value;
+            let filtered = (method === '전체') ? globalAllTrends.filter(r => r.모점포구분 === branch && r.기증방법 !== '전체합계') : globalAllTrends.filter(r => r.모점포구분 === branch && r.기증방법 === method);
+            let grouped = {};
+            filtered.forEach(r => { const key = r.연도 + "|" + r.월; if(!grouped[key]) grouped[key] = { year: r.연도, month: r.월, qty: 0 }; grouped[key].qty += r.물품수량; });
+            const sortedKeys = Object.values(grouped).sort((a, b) => { if (a.year !== b.year) return a.year.localeCompare(b.year); return a.month - b.month; });
+            const years = sortedKeys.map(r => r.year); const months = sortedKeys.map(r => r.month); const qtys = sortedKeys.map(r => r.qty);
+            if (searchTrendChart) searchTrendChart.destroy();
+            searchTrendChart = new Chart(document.getElementById('chartTrendSearch').getContext('2d'), { type: 'line', data: { labels: formatTrendLabels(years, months), datasets: [{ label: '수량', data: qtys, borderColor: '#0050A0', backgroundColor: '#0050A0', pointBackgroundColor: '#8DC63F', borderWidth: 3, pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { callbacks: { title: (ctx) => years[ctx[0].dataIndex] + " " + months[ctx[0].dataIndex] + "월", label: (ctx) => ctx.parsed.y.toLocaleString() + ' 점' } } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: {size: 11, weight: 'bold'} } }, y: { ticks: { callback: (v) => v.toLocaleString() } } } } });
+        }
+
+        function renderDashboard6(d6Data) {
+            const labels = d6Data.overall.map(i => i.물품명); const legendUl = document.getElementById('sharedLegend'); legendUl.innerHTML = '';
+            labels.forEach((label, idx) => { const color = ITEM_COLORS[idx % ITEM_COLORS.length]; legendUl.innerHTML += `<li class="flex items-center gap-2"><span class="w-3 h-3 rounded-full inline-block shadow-sm" style="background-color: ${color}"></span><span class="text-gray-700 dark:text-gray-300 font-medium">${label}</span></li>`; });
+            if (overallPieChart) overallPieChart.destroy();
+            overallPieChart = new Chart(document.getElementById('chartPieOverall').getContext('2d'), { type: 'doughnut', data: { labels: labels, datasets: [{ data: d6Data.overall.map(i => i.물품수량), backgroundColor: ITEM_COLORS, borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { display: false }, datalabels: { color: '#fff', font: {weight: 'bold'}, formatter: (v, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(d => sum+=d); return (v*100/sum) > 5 ? (v*100/sum).toFixed(1) + '%' : ''; } }, tooltip: { callbacks: { label: function(ctx) { let sum = 0; ctx.chart.data.datasets[0].data.forEach(d => sum+=d); let pct = (ctx.raw * 100 / sum).toFixed(1) + "%"; return ctx.label + ": " + ctx.raw.toLocaleString() + "점 (" + pct + ")"; } } } } } });
+            
+            const tbody = document.getElementById('itemTableBody'); tbody.innerHTML = '';
+            d6Data.overall.forEach((item, idx) => { const dotColor = ITEM_COLORS[idx % ITEM_COLORS.length]; tbody.innerHTML += `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700"><td class="font-bold flex items-center gap-2"><span class="w-2 h-2 rounded-full inline-block" style="background-color: ${dotColor}"></span>${item.물품명}</td><td class="text-right">${item['기증 건수'].toLocaleString()}</td><td class="text-right font-bold text-[#0050A0] dark:text-[#6BA4E7]">${item.물품수량.toLocaleString()}</td><td class="text-right text-gray-500">${item.총금액.toLocaleString()}</td></tr>`; });
+
+            methodPieCharts.forEach(c => c.destroy()); methodPieCharts = []; const container = document.getElementById('methodPiesContainer'); container.innerHTML = '';
+            Object.keys(d6Data.by_method).forEach((method, idx) => { container.innerHTML += `<div class="flex flex-col items-center"><h4 class="font-bold text-gray-700 dark:text-gray-300 mb-2">[${method}]</h4><div class="relative w-full h-[150px]"><canvas id="pieMethod_${idx}"></canvas></div></div>`; });
+            setTimeout(() => {
+                Object.keys(d6Data.by_method).forEach((method, idx) => {
+                    const ctx = document.getElementById(`pieMethod_${idx}`).getContext('2d'); const mLabels = d6Data.by_method[method].map(i => i.물품명); const mData = d6Data.by_method[method].map(i => i.물품수량); const bgColors = mLabels.map(l => ITEM_COLORS[labels.indexOf(l) % ITEM_COLORS.length] || '#ccc');
+                    const chart = new Chart(ctx, { type: 'doughnut', data: { labels: mLabels, datasets: [{ data: mData, backgroundColor: bgColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '40%', plugins: { legend: { display: false }, datalabels: { color: '#fff', font: {weight: 'bold', size: 10}, formatter: (v, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(d => sum+=d); return (v*100/sum) > 10 ? (v*100/sum).toFixed(0) + '%' : ''; } }, tooltip: { callbacks: { label: function(ctx) { let sum = 0; ctx.chart.data.datasets[0].data.forEach(d => sum+=d); let pct = (ctx.raw * 100 / sum).toFixed(1) + "%"; return ctx.label + ": " + ctx.raw.toLocaleString() + "점 (" + pct + ")"; } } } } } });
+                    methodPieCharts.push(chart);
+                });
+            }, 100);
+        }
+        window.addEventListener('resize', initDrawCanvases);
+    </script>
+</body>
+</html>
