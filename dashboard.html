@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko" class="transition-colors duration-300">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>굿윌스토어 기증량 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', }</script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; scroll-behavior: smooth; }
+        .table-container { overflow-x: auto; border-radius: 0.5rem; margin-bottom: 2rem; position: relative; }
+        table { width: 100%; font-size: 0.875rem; text-align: left; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 0.75rem 1.5rem; white-space: nowrap; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #0050A0; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .draw-overlay { z-index: 10; cursor: crosshair; }
+        
+        /* HQ 표 디자인 스타일 */
+        .hq-table th { background-color: #f8fafc; border: 1px solid #e2e8f0; font-weight: bold; text-align: center; padding: 0.5rem; }
+        .hq-table td { border: 1px solid #e2e8f0; padding: 0.5rem; text-align: right; }
+        .dark .hq-table th { background-color: #374151; border-color: #4b5563; }
+        .dark .hq-table td { border-color: #4b5563; }
+    </style>
+</head>
+<body class="min-h-screen bg-[#f4f6f9] dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+    <div class="h-2 w-full bg-[#0050A0] dark:bg-[#6BA4E7]"></div>
+    
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-[#0050A0] dark:text-[#6BA4E7]">굿윌스토어 기증량 대시보드</h1>
+            <div class="flex gap-2 items-center">
+                <button onclick="toggleDarkMode()" class="h-10 px-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded font-bold hover:bg-gray-300 transition shadow-sm">
+                    <i id="themeIcon" class="ph ph-moon text-lg"></i>
+                </button>
+                <button onclick="toggleDrawMode()" id="drawModeBtn" class="h-10 px-3 bg-green-500 text-white rounded text-sm font-bold hover:bg-green-600 transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="ph ph-pencil-simple text-base"></i> 그래프 체크
+                </button>
+                <button onclick="clearDrawings()" class="h-10 px-3 bg-gray-500 text-white rounded text-sm font-bold hover:bg-gray-600 transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="ph ph-eraser text-base"></i> 지우기
+                </button>
+                <button onclick="fetchPythonData()" class="h-10 px-4 bg-[#0050A0] dark:bg-[#6BA4E7] text-white rounded text-sm font-bold hover:bg-blue-800 transition shadow-sm flex items-center justify-center gap-1.5">
+                    <i class="ph ph-arrow-clockwise text-lg"></i> 대시보드 데이터 로드
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 relative min-h-[500px]">
+        <div id="loading" class="hidden text-center py-10 relative z-20"><div class="loader"></div><p class="font-bold text-[#0050A0] mt-4">데이터 연산 중...</p></div>
+        <div id="errorMessage" class="hidden bg-red-50 text-red-600 p-6 rounded-xl mb-8 font-bold text-center"></div>
+
+        <div id="dashboardContent" class="hidden relative z-20">
+            <!-- 기존 1~7번 지점 대시보드는 코드 생략 (여기에 기존 dashboard1~7 코드가 그대로 존재합니다) -->
+            <!-- ⚠️ (중요) 기존 1~7번 HTML 구조는 이전 답변의 코드를 그대로 유지하시면 됩니다. 스크롤이 너무 길어져 핵심인 본부 영역을 중심으로 출력합니다. -->
+            
+            <!-- ========================================== -->
+            <!-- 💡 관리자 전용 굿윌본부 기업기증 대시보드 영역 -->
+            <!-- ========================================== -->
+            <div class="mt-20 pt-10 border-t-2 border-dashed border-gray-300 dark:border-gray-700 text-center relative z-20">
+                <button onclick="unlockHQDashboard()" class="inline-flex items-center gap-2 px-8 py-3 bg-gray-800 dark:bg-gray-700 text-white font-bold rounded-full hover:bg-black transition-all shadow-md transform hover:scale-105">
+                    <i class="ph ph-lock-key text-xl"></i> 굿윌본부 기업기증 대시보드 (관리자)
+                </button>
+            </div>
+
+            <div id="hqDashboardContainer" class="hidden opacity-0 transition-opacity duration-1000 mt-10">
+                <div class="bg-gray-800 text-white p-6 rounded-t-2xl shadow-sm flex items-center gap-3">
+                    <i class="ph ph-buildings text-3xl text-yellow-400"></i>
+                    <h2 class="text-2xl font-black">굿윌스토어 본부 기업기증 분석 대시보드 (2022~2026)</h2>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 p-8 rounded-b-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+                    
+                    <!-- HQ 1: 연도별/품목별 수량 통계 + 표 -->
+                    <div class="mb-16">
+                        <h3 class="text-xl font-bold mb-4 text-[#0050A0] dark:text-[#6BA4E7] border-l-4 border-yellow-400 pl-3">1. 연도별/품목별 배분수량 통계</h3>
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-10 items-start">
+                            <div class="relative w-full h-[450px]"><canvas id="chartHqYearly"></canvas></div>
+                            <div class="table-container overflow-x-auto">
+                                <table class="w-full text-xs hq-table" id="hqYearlyTable">
+                                    <!-- JS에서 엑셀과 똑같은 모양의 표 생성 -->
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HQ 2: 월별 흐름 추이 (2개 차트 분리) -->
+                    <div class="mb-16">
+                        <h3 class="text-xl font-bold mb-4 text-[#0050A0] dark:text-[#6BA4E7] border-l-4 border-yellow-400 pl-3">2. 월별 기업 기증 흐름 추이</h3>
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                            <div>
+                                <h4 class="text-center font-bold text-gray-600 mb-2">📈 전체 연속 기증 추이 (2022.01 ~ 2026)</h4>
+                                <div class="relative w-full h-[350px]"><canvas id="chartHqContinuous"></canvas></div>
+                            </div>
+                            <div>
+                                <h4 class="text-center font-bold text-gray-600 mb-2">🔄 연도별 계절성 비교 추이</h4>
+                                <div class="relative w-full h-[350px]"><canvas id="chartHqSeasonal"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HQ 3: 지점별 배분 현황 (핵심) -->
+                    <div class="mb-16 border-t pt-10 dark:border-gray-700">
+                        <div class="flex flex-col md:flex-row justify-between items-end mb-4 gap-4">
+                            <h3 class="text-xl font-bold text-[#0050A0] dark:text-[#6BA4E7] border-l-4 border-yellow-400 pl-3">3. 당해년도 굿윌본부 기업기증 지점별 배분 현황</h3>
+                            <div class="flex gap-2">
+                                <select id="hqBranchYear" onchange="updateHqChart3()" class="border border-gray-300 rounded p-2 text-sm font-bold focus:outline-none dark:bg-gray-700">
+                                    <option value="2026년" selected>2026년</option>
+                                    <option value="2025년">2025년</option>
+                                    <option value="2024년">2024년</option>
+                                    <option value="2023년">2023년</option>
+                                    <!-- 2022년은 지점 미상이므로 제외 -->
+                                </select>
+                                <select id="hqBranchItem" onchange="updateHqChart3()" class="border border-gray-300 rounded p-2 text-sm font-bold focus:outline-none dark:bg-gray-700">
+                                    <option value="전체" selected>품목 전체</option>
+                                    <option value="의류">의류</option>
+                                    <option value="잡화">잡화</option>
+                                    <option value="생활">생활</option>
+                                    <option value="문화">문화</option>
+                                    <option value="건강/미용">건강/미용</option>
+                                    <option value="식품">식품</option>
+                                    <option value="기증파트너">기증파트너</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-xs text-red-500 mb-4">* 배분처 데이터가 없는 2022년은 제외되며, 배분 수량이 높은 지점순으로 나열됩니다.</p>
+                        <!-- 💡 담당자님 요청대로 세로 막대(지점명이 가로축)로 변경 -->
+                        <div class="relative w-full h-[400px]"><canvas id="chartHqBranch"></canvas></div>
+                    </div>
+
+                    <!-- HQ 4: 우수 기증 기업 Top 10 -->
+                    <div>
+                        <div class="flex justify-between items-end mb-4">
+                            <h3 class="text-xl font-bold text-[#0050A0] dark:text-[#6BA4E7] border-l-4 border-yellow-400 pl-3">4. 우수 기증 기업 Top 10 (누적 수량 기준)</h3>
+                            <select id="hqTop10Year" onchange="updateHqChart4()" class="border border-gray-300 rounded p-2 text-sm font-bold focus:outline-none dark:bg-gray-700">
+                                <option value="전체">2022~2026 전체 누적</option>
+                                <option value="2026년" selected>2026년</option>
+                                <option value="2025년">2025년</option>
+                                <option value="2024년">2024년</option>
+                                <option value="2023년">2023년</option>
+                                <option value="2022년">2022년</option>
+                            </select>
+                        </div>
+                        <div class="table-container border dark:border-gray-700">
+                            <table class="w-full">
+                                <thead class="bg-gray-100 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="text-center w-20">순위</th>
+                                        <th>기증 기업명</th>
+                                        <th class="text-right">배분수량 (점)</th>
+                                        <th class="text-right">배분금액 (원)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hqTop10Body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        Chart.register(ChartDataLabels);
+        const API_URL = '/api/dashboard-data';
+        
+        // 💡 담당자님 요청 범례 순서 강제 고정
+        const HQ_ITEM_ORDER = ['의류', '잡화', '생활', '문화', '건강/미용', '식품', '기증파트너'];
+        const HQ_ITEM_COLORS = ['#E41A1C', '#377EB8', '#4DAF4A', '#984EA3', '#FF7F00', '#F781BF', '#999999'];
+
+        let globalHQData = null; 
+        let hqYearlyChart=null, hqContinuousChart=null, hqSeasonalChart=null, hqBranchChart=null;
+
+        // (기존 fetchData 등 1~7번 함수는 그대로 유지)
+        async function fetchPythonData() {
+            // (기존 코드와 동일하므로 생략 없이 원래 사용하시던 코드를 그대로 쓰시면 됩니다.)
+            // 데이터 로드 성공 시 globalHQData = data.hq_dashboard.raw_data; 에 저장되도록만 확인해주세요.
+            try {
+                document.getElementById('loading').classList.remove('hidden'); 
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // ... 기존 1~7번 로직 ...
+                
+                // 본부 원본 데이터 
+                if(data.hq_dashboard) globalHQData = data.hq_dashboard.raw_data;
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+            } catch (error) {
+                // 에러 처리
+            }
+        }
+
+        // ==========================================
+        // 💡 관리자 본부 대시보드 스크립트 
+        // ==========================================
+        function unlockHQDashboard() {
+            const pwd = prompt("굿윌스토어 본부 관리자 비밀번호를 입력하세요:");
+            if (pwd === "*gws9057") {
+                if (!globalHQData || globalHQData.length === 0) {
+                    alert("⚠️ 엑셀 데이터가 없습니다. 파이썬 연산을 확인해주세요.");
+                    return;
+                }
+                const container = document.getElementById('hqDashboardContainer');
+                container.classList.remove('hidden');
+                setTimeout(() => { container.classList.remove('opacity-0'); }, 100);
+                
+                renderHqChart1();
+                renderHqChart2();
+                updateHqChart3();
+                updateHqChart4();
+                
+                setTimeout(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 300);
+            } else if (pwd !== null) {
+                alert("⛔ 비밀번호가 일치하지 않습니다.");
+            }
+        }
+
+        function renderHqChart1() {
+            // 연도별/품목별 수량 통계
+            const years = ['2022년', '2023년', '2024년', '2025년', '2026년'];
+            const datasets = HQ_ITEM_ORDER.map((item, idx) => ({
+                label: item,
+                backgroundColor: HQ_ITEM_COLORS[idx],
+                data: years.map(y => {
+                    return globalHQData.filter(d => d['연도'] === y && d['품목'] === item).reduce((sum, d) => sum + d['배분수량'], 0);
+                })
+            }));
+
+            if(hqYearlyChart) hqYearlyChart.destroy();
+            hqYearlyChart = new Chart(document.getElementById('chartHqYearly').getContext('2d'), {
+                type: 'bar', data: { labels: years, datasets: datasets },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    scales: { x: { stacked: true }, y: { stacked: true } }, 
+                    plugins: { 
+                        legend: { position: 'bottom' },
+                        datalabels: { color: 'white', font: {weight: 'bold'}, formatter: (v) => v > 50000 ? (v/1000).toFixed(0)+'k' : '' }
+                    } 
+                }
+            });
+
+            // 우측 테이블 렌더링 (사진과 동일한 구조)
+            let tableHTML = `<thead><tr><th rowspan="2">월</th>`;
+            years.forEach(y => tableHTML += `<th colspan="2">${y}</th>`);
+            tableHTML += `</tr><tr>`;
+            years.forEach(() => tableHTML += `<th>수량</th><th>금액</th>`);
+            tableHTML += `</tr></thead><tbody>`;
+
+            let yearlyTotals = { '2022년':{q:0, a:0}, '2023년':{q:0, a:0}, '2024년':{q:0, a:0}, '2025년':{q:0, a:0}, '2026년':{q:0, a:0} };
+
+            for(let m=1; m<=12; m++) {
+                tableHTML += `<tr><td class="font-bold bg-gray-50 text-center">${m}월</td>`;
+                years.forEach(y => {
+                    const rows = globalHQData.filter(d => d['연도'] === y && d['월'] === m);
+                    const qty = rows.reduce((sum, d) => sum + d['배분수량'], 0);
+                    const amt = rows.reduce((sum, d) => sum + d['배분금액'], 0);
+                    yearlyTotals[y].q += qty; yearlyTotals[y].a += amt;
+                    
+                    tableHTML += `<td>${qty > 0 ? qty.toLocaleString() : '-'}</td><td class="text-gray-500">${amt > 0 ? amt.toLocaleString() : '-'}</td>`;
+                });
+                tableHTML += `</tr>`;
+            }
+            
+            // 합계 줄
+            tableHTML += `<tr class="bg-blue-50 font-bold border-t-2 border-blue-200"><td class="text-center text-[#0050A0]">합계</td>`;
+            years.forEach(y => {
+                tableHTML += `<td class="text-[#0050A0]">${yearlyTotals[y].q.toLocaleString()}</td><td class="text-blue-800">${yearlyTotals[y].a.toLocaleString()}</td>`;
+            });
+            tableHTML += `</tr></tbody>`;
+            document.getElementById('hqYearlyTable').innerHTML = tableHTML;
+        }
+
+        function renderHqChart2() {
+            // 2-1. 전체 연속 그래프
+            let continuousMap = {};
+            globalHQData.forEach(d => {
+                const key = `${d['연도'].replace('년','')}년 ${d['월']}월`;
+                const sortKey = parseInt(d['연도'].replace('년','')) * 100 + d['월'];
+                if(!continuousMap[sortKey]) continuousMap[sortKey] = { label: key, qty: 0 };
+                continuousMap[sortKey].qty += d['배분수량'];
+            });
+            const sortedKeys = Object.keys(continuousMap).sort((a,b)=>a-b);
+            const contLabels = sortedKeys.map(k => continuousMap[k].label);
+            const contData = sortedKeys.map(k => continuousMap[k].qty);
+
+            if(hqContinuousChart) hqContinuousChart.destroy();
+            hqContinuousChart = new Chart(document.getElementById('chartHqContinuous').getContext('2d'), {
+                type: 'line',
+                data: { labels: contLabels, datasets: [{ label: '배분수량', data: contData, borderColor: '#0050A0', backgroundColor: '#0050A0', fill: true, backgroundColor: 'rgba(0, 80, 160, 0.1)', tension: 0.3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend:{display:false}, datalabels:{display:false} }, scales: { x: { ticks: { autoSkip: true, maxTicksLimit: 12 } } } }
+            });
+
+            // 2-2. 계절성(연도별) 겹침 그래프
+            const years = ['2022년', '2023년', '2024년', '2025년', '2026년'];
+            const months = [1,2,3,4,5,6,7,8,9,10,11,12];
+            const colors = ['#9CA3AF', '#FCD34D', '#34D399', '#60A5FA', '#EF4444']; // 26년은 빨간색 강조
+            
+            const seasonalData = years.map((y, idx) => ({
+                label: y, borderColor: colors[idx], backgroundColor: colors[idx], fill: false, tension: 0.4, borderWidth: y==='2026년'?4:2,
+                data: months.map(m => globalHQData.filter(d => d['연도'] === y && d['월'] === m).reduce((sum, d) => sum + d['배분수량'], 0))
+            }));
+
+            if(hqSeasonalChart) hqSeasonalChart.destroy();
+            hqSeasonalChart = new Chart(document.getElementById('chartHqSeasonal').getContext('2d'), {
+                type: 'line',
+                data: { labels: months.map(m=>m+'월'), datasets: seasonalData },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels:{display:false} } }
+            });
+        }
+
+        function updateHqChart3() {
+            const ySel = document.getElementById('hqBranchYear').value;
+            const iSel = document.getElementById('hqBranchItem').value;
+
+            // 필터: 선택 연도 + 2022년 제외 + 알수없음(미상) 제외 + 품목 필터
+            const filtered = globalHQData.filter(d => 
+                d['연도'] === ySel && 
+                d['점포명'] !== '배분처 미상' && 
+                d['점포명'] !== '알수없음' &&
+                (iSel === '전체' || d['품목'] === iSel)
+            );
+
+            let branchMap = {};
+            filtered.forEach(d => {
+                if(!branchMap[d['점포명']]) branchMap[d['점포명']] = 0;
+                branchMap[d['점포명']] += d['배분수량'];
+            });
+
+            // 많은 순(내림차순) 정렬
+            const sortedBranches = Object.keys(branchMap).sort((a,b) => branchMap[b] - branchMap[a]);
+            const bData = sortedBranches.map(b => branchMap[b]);
+
+            if(hqBranchChart) hqBranchChart.destroy();
+            hqBranchChart = new Chart(document.getElementById('chartHqBranch').getContext('2d'), {
+                type: 'bar', // 💡 가로축에 지점명이 나오도록 세로 막대그래프로 설정
+                data: { labels: sortedBranches, datasets: [{ label: '배분수량', data: bData, backgroundColor: '#8DC63F' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend:{display:false}, datalabels:{color:'black', font:{weight:'bold', size:10}, align:'top', anchor:'end'} } }
+            });
+        }
+
+        function updateHqChart4() {
+            const ySel = document.getElementById('hqTop10Year').value;
+            const filtered = globalHQData.filter(d => ySel === '전체' || d['연도'] === ySel);
+
+            let compMap = {};
+            filtered.forEach(d => {
+                const c = d['기업명'];
+                if(!compMap[c]) compMap[c] = { q:0, a:0 };
+                compMap[c].q += d['배분수량']; compMap[c].a += d['배분금액'];
+            });
+
+            // 상위 10개
+            const top10 = Object.keys(compMap)
+                                .map(c => ({ name: c, q: compMap[c].q, a: compMap[c].a }))
+                                .sort((a,b) => b.q - a.q)
+                                .slice(0, 10);
+
+            const tbody = document.getElementById('hqTop10Body');
+            tbody.innerHTML = '';
+            if(top10.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-gray-500">데이터가 없습니다.</td></tr>`;
+                return;
+            }
+            top10.forEach((row, idx) => {
+                const medal = idx === 0 ? '🥇 ' : (idx === 1 ? '🥈 ' : (idx === 2 ? '🥉 ' : ''));
+                tbody.innerHTML += `
+                <tr class="hover:bg-blue-50 transition-colors border-b dark:border-gray-700">
+                    <td class="text-center font-bold text-gray-700 dark:text-gray-300 py-3">${medal}${idx + 1}</td>
+                    <td class="font-black text-[#0050A0] dark:text-[#6BA4E7] py-3">${row.name}</td>
+                    <td class="text-right font-bold text-gray-800 dark:text-gray-200 py-3">${row.q.toLocaleString()} 점</td>
+                    <td class="text-right font-medium text-gray-500 dark:text-gray-400 py-3">${row.a.toLocaleString()} 원</td>
+                </tr>`;
+            });
+        }
+
+        window.addEventListener('resize', initDrawCanvases);
+    </script>
+</body>
+</html>
